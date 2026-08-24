@@ -1,0 +1,4 @@
+.env
+.vscode
+StudentClubManagement_venv/
+__pycache__/
