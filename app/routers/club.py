@@ -12,8 +12,9 @@ from app.utils.response import api_response
 router = APIRouter(prefix="/clubs" , tags=["Clubs"])
 
 # region ================================ Tạo club ================================
-@router.post("",response_model=ClubResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED) #response_model=api_response,
 def create_a_club(
+    request: Request,
     data: ClubCreateForm = Form(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user) 
@@ -22,20 +23,50 @@ def create_a_club(
     club_data = ClubCreate(name=data.name,description=data.description,owner_id=current_user.id)
     new_club = club_service.create_club(db=db, club_data=club_data, actor_id=current_user.id)
 
-    return new_club
+    # return new_club
+
+    club_Response = ClubResponse.model_validate(new_club).model_dump(mode="json")
+
+    return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content=api_response(
+                status_code=status.HTTP_201_CREATED,
+                message="Đã thêm câu lạc bộ thành công",
+                data=club_Response,
+                path=request.url.path,
+            ),
+        )
 #endregion
     
 # region ================================ Xem club mình tham gia ================================
 @router.get("")
 def view_my_clubs(
+    request: Request,
     search: str = Query(default=None, description="Tìm theo tên câu lạc bộ"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
 
     list_clubs = club_service.list_user_clubs(db, current_user.id, search=search) 
+
+    # list_clubs_response = ClubResponse.model_validate(list_clubs).model_dump(mode="json")
+
+    list_clubs_response = [
+    ClubResponse.model_validate(club).model_dump(mode="json")
+    for club in list_clubs
+    ]
     
-    return list_clubs
+    # return list_clubs
+
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=api_response(
+            status_code=status.HTTP_201_CREATED,
+            message="Đã trích xuất câu lạc bộ thành công",
+            data=list_clubs_response,
+            path=request.url.path,
+        ),
+    )
 #endregion
 
 # region ================================ Xem club qua id ================================

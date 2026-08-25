@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.db.database import Base, engine
+from app.db.database import Base, engine, ensure_club_soft_delete_column
 from app.models import user,club,activity,club_log
 from app.utils.response import api_response, error_response
 from app.utils.exceptions import AppException
@@ -17,6 +17,7 @@ app.include_router(club.router)
 # app.include_router(activity.router)
 
 Base.metadata.create_all(bind=engine)
+ensure_club_soft_delete_column()
 
 @app.exception_handler(AppException)
 def app_exception_handler(request: Request, exc: AppException):

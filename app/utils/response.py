@@ -1,14 +1,13 @@
 from datetime import datetime, timezone
-from typing import Any
 
 
 def api_response(
     status_code: int,
-    data: Any = None,
+    data: dict | None = None,
     message: str = "Thành công",
     error: str | None = None,
     path: str | None = None,
-) -> dict[str, Any]:
+) -> dict | None:
     return {
         "status_code": status_code,
         "error": error,
@@ -24,7 +23,7 @@ def error_response(
     error: str,
     message: str,
     path: str | None = None,
-) -> dict[str, Any]:
+) -> dict | None:
     return api_response(
         status_code=status_code,
         error=error,

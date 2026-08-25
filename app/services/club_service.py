@@ -9,9 +9,13 @@ from app.models.club_log import ClubLog
 from app.utils.exceptions import BadRequestException, NotFoundException, ForbiddenException, HTTPConflict
 
 def create_club(db: Session, club_data: ClubCreate, actor_id: int):
-    existing_club = db.query(Club).filter(func.lower(Club.name) == club_data.name.lower()).first()
+    existing_club = db.query(Club).filter(
+        func.lower(Club.name) == club_data.name.lower(),
+        Club.is_deleted.is_(False),
+        Club.deleted_at.is_(None),
+    ).first()
     if existing_club:
-        raise HTTPConflict("Câu lạc bộ này đã tồn tại")
+        raise HTTPConflict("Câu lạc bộ này đã tồn tại") 
 
     new_club = Club(
         name= club_data.name,
@@ -47,7 +51,11 @@ def list_user_clubs(db: Session, user_id: int, search: str = None):
 
     query = (db.query(Club)
              .join(ClubMember, ClubMember.club_id == Club.id)
-             .filter(ClubMember.user_id == user_id)
+             .filter(
+                 ClubMember.user_id == user_id,
+                 Club.is_deleted.is_(False),
+                 Club.deleted_at.is_(None),
+             )
              )
 
     if search:
@@ -56,7 +64,11 @@ def list_user_clubs(db: Session, user_id: int, search: str = None):
     return query.order_by(Club.id).all()
 
 def get_club(db: Session, club_id: int):
-    club = db.query(Club).filter(Club.id == club_id).first()
+    club = db.query(Club).filter(
+        Club.id == club_id,
+        Club.is_deleted.is_(False),
+        Club.deleted_at.is_(None),
+    ).first()
     if club is None:
         raise NotFoundException("Clb không tồn tại!")
     return club
@@ -132,40 +144,16 @@ def update_club(db: Session, club: Club, name: str, description: str, actor_id: 
 
     return club
 
-# def delete_club(db: Session, club: Club, actor_id: int) -> None:
-
-#     try:
-#         club.deleted_at = func.now()
-#         db.add(ClubLog(
-#             club_id=club.id,
-#             actor_id=actor_id,
-#             action="DELETE_CLUB",
-#             details="Xóa mềm câu lạc bộ",
-#         ))
-#     except Exception:
-#         db.rollback()
-#         raise
-#     else:
-#         db.commit()
-
 def delete_club(db: Session, club: Club, actor_id: int) -> None:
     try:
         db.add(ClubLog(
             club_id=club.id,
             actor_id=actor_id,
             action="DELETE_CLUB",
-            details=f"Xóa câu lạc bộ: {club.name}",
+            details=f"Xóa mềm câu lạc bộ: {club.name}",
         ))
-
-        db.query(ClubActivity).filter(
-            ClubActivity.club_id == club.id
-        ).delete()
-
-        db.query(ClubMember).filter(
-            ClubMember.club_id == club.id
-        ).delete()
-
-        db.delete(club)
+        club.is_deleted = True
+        club.deleted_at = func.now()
         db.commit()
 
     except Exception:

@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import datetime
-from sqlalchemy import VARCHAR, DateTime, ForeignKey, func, Enum as SqlEnum
+from sqlalchemy import VARCHAR, Boolean, DateTime, ForeignKey, func, Enum as SqlEnum
 from sqlalchemy.orm import Mapped , mapped_column, relationship
 
 from app.db.database import Base
@@ -16,6 +16,8 @@ class Club(Base):
     name: Mapped[str] = mapped_column(VARCHAR(255), unique=False)
     description: Mapped[str] = mapped_column(VARCHAR(255), unique=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, server_default="0", default=False, nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
