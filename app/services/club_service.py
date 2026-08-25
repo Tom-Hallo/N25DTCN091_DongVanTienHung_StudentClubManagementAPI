@@ -8,7 +8,6 @@ from app.models.activity import ClubActivity
 from app.models.club_log import ClubLog
 from app.utils.exceptions import BadRequestException, NotFoundException, ForbiddenException, HTTPConflict
 
-
 def create_club(db: Session, club_data: ClubCreate, actor_id: int):
     existing_club = db.query(Club).filter(func.lower(Club.name) == club_data.name.lower()).first()
     if existing_club:
@@ -151,18 +150,20 @@ def update_club(db: Session, club: Club, name: str, description: str, actor_id: 
 
 def delete_club(db: Session, club: Club, actor_id: int) -> None:
     try:
-        # db.add(ClubLog(
-        #     club_id=club.id,
-        #     actor_id=actor_id,
-        #     action="DELETE_CLUB",
-        #     details=f"Xóa câu lạc bộ: {club.name}",
-        # ))
+        db.add(ClubLog(
+            club_id=club.id,
+            actor_id=actor_id,
+            action="DELETE_CLUB",
+            details=f"Xóa câu lạc bộ: {club.name}",
+        ))
 
-        db.flush()
+        db.query(ClubActivity).filter(
+            ClubActivity.club_id == club.id
+        ).delete()
 
-        db.query(ClubActivity).filter(ClubActivity.club_id == club.id).delete()
-
-        db.query(ClubMember).filter(ClubMember.club_id == club.id).delete()
+        db.query(ClubMember).filter(
+            ClubMember.club_id == club.id
+        ).delete()
 
         db.delete(club)
         db.commit()

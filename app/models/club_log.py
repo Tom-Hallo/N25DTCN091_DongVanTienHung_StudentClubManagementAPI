@@ -11,7 +11,7 @@ class ClubLog(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
-    club_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"),nullable=True,)
+    club_id: Mapped[int | None] = mapped_column(nullable=True,)
 
     actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"),nullable=False,)
 
