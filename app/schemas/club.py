@@ -9,15 +9,21 @@ class ClubBase(BaseModel):
     name: str = Field(min_length=1, max_length=150)
     description: str | None = None
 
-
 class ClubCreate(ClubBase):
     owner_id: int
 
+class ClubCreateForm(ClubBase):
+    pass
 
 class ClubUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=150)
+    name: str | None = Field(default=None, min_length=0, max_length=150)
     description: str | None = None
-    owner_id: int | None = None
+    # owner_id: int | None
+
+class ClubPutUpdate(BaseModel):
+    name: str | None = Field(min_length=1, max_length=150)
+    description: str | None 
+    # owner_id: int | None = None
 
 
 class ClubResponse(ClubBase):
@@ -49,3 +55,14 @@ class ClubMemberResponse(BaseModel):
     user_id: int
     role: ClubMemberRole
     joined_at: datetime
+
+
+class ClubLogResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    club_id: int
+    actor_id: int
+    action: str
+    details: str | None
+    created_at: datetime

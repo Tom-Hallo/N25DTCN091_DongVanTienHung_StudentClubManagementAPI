@@ -10,7 +10,7 @@ from app.utils.exceptions import ForbiddenException, UnauthorizedException, NotF
 bearer_scheme = HTTPBearer(auto_error=False)
 
 def get_current_user(token: HTTPAuthorizationCredentials = Depends(bearer_scheme), db: Session = Depends(get_db)) -> User:
-    print("Token sau khi xu ly:", token)
+    # print("Token sau khi xu ly:", token)
 
     if token is None:
         raise UnauthorizedException("Access Token Is Missing ...")

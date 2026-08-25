@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, Depends, Request
+from fastapi import APIRouter, Form, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -8,15 +8,11 @@ from app.utils.rate_limiter import check_rate_limit
 
 router = APIRouter(prefix="/auth" , tags=["Auth"])
 
-@router.post("/register", response_model=UserResponse, status_code=201)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def auth_register(
-    email: str = Form(..., description="Email của người dùng"),
-    full_name: str = Form(..., description="Nhập tên người dùng"),
-    password: str = Form(..., description="Mật khẩu"),
-    role_name: str = Form(..., description="Nhập Role (Mặc định: User)"),
+    user_data: UserCreate = Form(...),
     db: Session = Depends(get_db)
  ):
-    user_data = UserCreate(email=email, full_name=full_name, password=password, role_name=role_name)
     new_user = auth_service.create_user(db=db, user_data=user_data)
     return new_user
 

@@ -2,13 +2,13 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.schemas.user import UserCreate
-from app.utils.exceptions import BadRequestException, UnauthorizedException, ForbiddenException
+from app.utils.exceptions import BadRequestException, UnauthorizedException, ForbiddenException ,HTTPConflict
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_access_token
 
 def create_user(db: Session, user_data: UserCreate):
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
-        raise BadRequestException("Email đã tồn tại")
+        raise HTTPConflict("Email đã tồn tại")
 
     hashed_pwd = hash_password(user_data.password)
 
