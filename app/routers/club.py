@@ -1,4 +1,5 @@
 from fastapi import APIRouter, status, Form, Depends, Query, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -12,7 +13,12 @@ from app.utils.response import api_response
 router = APIRouter(prefix="/clubs" , tags=["Clubs"])
 
 # region ================================ Tạo club ================================
-@router.post("", status_code=status.HTTP_201_CREATED) #response_model=api_response,
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    summary="Tạo câu lạc bộ",
+    description="Tạo một câu lạc bộ mới và gán người dùng hiện tại làm owner.",
+)
 def create_a_club(
     request: Request,
     data: ClubCreateForm = Form(),
@@ -39,7 +45,12 @@ def create_a_club(
 #endregion
     
 # region ================================ Xem club mình tham gia ================================
-@router.get("")
+@router.get(
+    "",
+    status_code=status.HTTP_200_OK,
+    summary="Danh sách câu lạc bộ",
+    description="Lấy các câu lạc bộ mà người dùng hiện tại đang tham gia.",
+)
 def view_my_clubs(
     request: Request,
     search: str = Query(default=None, description="Tìm theo tên câu lạc bộ"),
@@ -59,7 +70,7 @@ def view_my_clubs(
     # return list_clubs
 
     return JSONResponse(
-        status_code=status.HTTP_201_CREATED,
+        status_code=status.HTTP_200_OK,
         content=api_response(
             status_code=status.HTTP_201_CREATED,
             message="Đã trích xuất câu lạc bộ thành công",
@@ -70,19 +81,37 @@ def view_my_clubs(
 #endregion
 
 # region ================================ Xem club qua id ================================
-@router.get("/{id}", response_model=ClubResponse)
+@router.get(
+    "/{id}",
+    summary="Chi tiết câu lạc bộ",
+    description="Lấy thông tin câu lạc bộ mà người dùng là thành viên.",
+)
 def view_my_clubs_by_id(
     id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     club = club_service.get_club(db, id)
     club_service.require_member(db, id, current_user.id)
-    return club
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=api_response(
+            status_code=status.HTTP_200_OK,
+            message="Lấy thông tin câu lạc bộ thành công",
+            data=ClubResponse.model_validate(club).model_dump(mode="json"),
+            path=request.url.path,
+        ),
+    )
 #endregion
 
 # region ================================ Thêm tv club (Owner) ================================
-@router.post("/{id}/members", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{id}/members",
+    status_code=status.HTTP_201_CREATED,
+    summary="Thêm thành viên",
+    description="Owner thêm một user vào câu lạc bộ.",
+)
 def add_member_club(
     id: int,
     request: Request,
@@ -108,32 +137,69 @@ def add_member_club(
 #endregion
 
 # region ================================ Sửa tt club (Owner) ================================
-@router.put("/{id}", response_model=ClubResponse)
+@router.put(
+    "/{id}",
+    summary="Cập nhật toàn bộ câu lạc bộ",
+    description="Owner cập nhật thông tin câu lạc bộ.",
+)
 def update_club_all_infor(
     id: int,
+    request: Request,
     data: ClubPutUpdate = Form(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     club = club_service.get_club(db, id)
     club_service.require_owner(db, id, current_user.id)
-    return club_service.update_club(db, club, data.name, data.description, current_user.id)
+    updated_club = club_service.update_club(
+        db, club, data.name, data.description, current_user.id
+    )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=api_response(
+            status_code=status.HTTP_200_OK,
+            message="Cập nhật câu lạc bộ thành công",
+            data=ClubResponse.model_validate(updated_club).model_dump(mode="json"),
+            path=request.url.path,
+        ),
+    )
 
 
-@router.patch("/{id}", response_model=ClubResponse)
+@router.patch(
+    "/{id}",
+    summary="Cập nhật một phần câu lạc bộ",
+    description="Owner cập nhật các trường được gửi lên.",
+)
 def update_club_specific_info(
     id: int,
+    request: Request,
     data: ClubUpdate = Form(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     club = club_service.get_club(db, id)
     club_service.require_owner(db, id, current_user.id)
-    return club_service.update_club(db, club, data.name, data.description, current_user.id)
+    updated_club = club_service.update_club(
+        db, club, data.name, data.description, current_user.id
+    )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=api_response(
+            status_code=status.HTTP_200_OK,
+            message="Cập nhật câu lạc bộ thành công",
+            data=ClubResponse.model_validate(updated_club).model_dump(mode="json"),
+            path=request.url.path,
+        ),
+    )
 #endregion
 
 # region================================ Xóa tt club (Owner) ================================
-@router.delete("/{id}", status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_200_OK,
+    summary="Xóa câu lạc bộ",
+    description="Đánh dấu câu lạc bộ đã bị xóa mà không mất dữ liệu.",
+)
 def delete_club(
     id: int,
     request: Request,
@@ -155,7 +221,12 @@ def delete_club(
 #endregion
 
 # region================================ Xóa tv club (Owner) ================================
-@router.delete("/{id}/members/{user_id}", status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{id}/members/{user_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Xóa thành viên",
+    description="Owner xóa một thành viên khỏi câu lạc bộ.",
+)
 def remove_member(
     id: int,
     user_id: int,
@@ -177,9 +248,15 @@ def remove_member(
 #endregion
 
 # region================================ Xem members trong club ================================
-@router.get("/{id}/members", status_code=status.HTTP_200_OK )
+@router.get(
+    "/{id}/members",
+    status_code=status.HTTP_200_OK,
+    summary="Danh sách thành viên",
+    description="Lấy danh sách thành viên của câu lạc bộ.",
+)
 def list_members_club(
     id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -188,5 +265,13 @@ def list_members_club(
 
     club_members = club_service.list_members(db, id) 
 
-    return club_members
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=api_response(
+            status_code=status.HTTP_200_OK,
+            message="Lấy danh sách thành viên thành công",
+            data=jsonable_encoder(club_members),
+            path=request.url.path,
+        ),
+    )
 #endregion

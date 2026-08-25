@@ -11,11 +11,8 @@ class ClubActivityBase(BaseModel):
     due_date: datetime | None = None
     priority: ActivityPriority = ActivityPriority.MEDIUM
 
-
-class ClubActivityCreate(ClubActivityBase):
-    club_id: int
+class ClubActivityCreateForm(ClubActivityBase):
     assignee_id: int | None = None
-    status: ActivityStatus = ActivityStatus.TODO
 
 
 class ClubActivityUpdate(BaseModel):
