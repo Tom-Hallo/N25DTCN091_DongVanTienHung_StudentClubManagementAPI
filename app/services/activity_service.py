@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -34,13 +34,26 @@ def create_activity(db: Session, club_id: int, data: ClubActivityCreateForm, act
     if data.assignee_id is not None:
             validate_assignee(db, club_id, data.assignee_id)
 
-    # existing_activity = db.query(ClubActivity).filter(
-    #     func.lower(ClubActivity.title) == data.title.lower(),
-    #     ClubActivity.due_date == data.due_date
-    #     ).first()
-    
-    # if existing_activity:
-    #     raise HTTPConflict("Hoạt động này đã tồn tại trong CLB") 
+    existing_activity_query = db.query(ClubActivity).filter(
+        ClubActivity.club_id == club_id,
+        func.lower(ClubActivity.title) == data.title.strip().lower(),
+    )
+
+    if data.due_date is None:
+        existing_activity_query = existing_activity_query.filter(
+            ClubActivity.due_date.is_(None)
+        )
+    else:
+        existing_activity_query = existing_activity_query.filter(
+            extract("year", ClubActivity.due_date) == data.due_date.year,
+            extract("month", ClubActivity.due_date) == data.due_date.month,
+            extract("day", ClubActivity.due_date) == data.due_date.day,
+            extract("hour", ClubActivity.due_date) == data.due_date.hour,
+            extract("minute", ClubActivity.due_date) == data.due_date.minute,
+        )
+
+    if existing_activity_query.first() is not None:
+        raise HTTPConflict("Hoạt động có cùng tên và thời gian đã tồn tại trong CLB")
 
     new_activity = ClubActivity(
         club_id=club_id,
