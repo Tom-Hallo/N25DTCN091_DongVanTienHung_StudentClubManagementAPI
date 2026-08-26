@@ -4,7 +4,6 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.db.database import Base, engine, ensure_club_soft_delete_column
-# from app.models import user,club,activity,club_log
 from app.utils.response import error_response
 from app.utils.exceptions import AppException
 from app.routers import auth, users, club, activity

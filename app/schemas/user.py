@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.user import RoleClassify
 
@@ -9,10 +9,17 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: str = Field(min_length=1, max_length=100)
 
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def strip_full_name(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
 
 class UserCreate(UserBase):
     password: str = Field(min_length=6, max_length=100)
-    role: RoleClassify = RoleClassify.USER
+    # role: RoleClassify = RoleClassify.USER
 
 
 class UserUpdate(BaseModel):

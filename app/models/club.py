@@ -14,7 +14,7 @@ class Club(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
     name: Mapped[str] = mapped_column(VARCHAR(255), unique=False)
-    description: Mapped[str] = mapped_column(VARCHAR(255), unique=False)
+    description: Mapped[str | None] = mapped_column(VARCHAR(255), unique=False, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, server_default="0", default=False, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

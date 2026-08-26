@@ -1,10 +1,19 @@
-from fastapi import APIRouter, status, Request, Form, Depends, Query
+from fastapi import APIRouter, status, Request, Form, Depends, Query, File, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.db.database import get_db
-from app.schemas.activity import ClubActivityCreateForm, ClubActivityResponse, ClubActivityUpdate, ActivityPriority, ActivityStatus
+from app.schemas.activity import (
+    ClubActivityCreateForm,
+    ClubActivityResponse,
+    ClubActivityUpdate,
+    ActivityPriority,
+    ActivityStatus,
+    ActivityCommentCreate,
+    ActivityCommentResponse,
+    ActivityAttachmentResponse,
+)
 from app.services import club_service
 from app.services import activity_service
 from app.utils.response import api_response
@@ -165,3 +174,117 @@ def delete_activity(
         ),
     )
 #endregion
+
+
+@router.post(
+    "/activities/{id}/comments",
+    status_code=status.HTTP_201_CREATED,
+    summary="Thêm comment cho hoạt động",
+    description="Chỉ thành viên của câu lạc bộ được tạo comment.",
+)
+def create_activity_comment(
+    id: int,
+    request: Request,
+    data: ActivityCommentCreate = Form(),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    activity = activity_service.get_activity(db, id)
+    comment = activity_service.add_comment(
+        db, activity, data.content, current_user
+    )
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=api_response(
+            status_code=status.HTTP_201_CREATED,
+            message="Thêm comment thành công",
+            data=ActivityCommentResponse.model_validate(comment).model_dump(mode="json"),
+            path=request.url.path,
+        ),
+    )
+
+
+@router.get(
+    "/activities/{id}/comments",
+    status_code=status.HTTP_200_OK,
+    summary="Xem comment của hoạt động",
+    description="Chỉ thành viên của câu lạc bộ được xem comment.",
+)
+def get_activity_comments(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    activity = activity_service.get_activity(db, id)
+    comments = activity_service.list_comments(db, activity, current_user)
+    data = [
+        ActivityCommentResponse.model_validate(comment).model_dump(mode="json")
+        for comment in comments
+    ]
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=api_response(
+            status_code=status.HTTP_200_OK,
+            message="Lấy comment thành công",
+            data=data,
+            path=request.url.path,
+        ),
+    )
+
+
+@router.post(
+    "/activities/{id}/attachments",
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload file cho hoạt động",
+    description="Chỉ thành viên được upload JPG, PNG, WEBP hoặc PDF tối đa 5 MB.",
+)
+def upload_activity_attachment(
+    id: int,
+    request: Request,
+    file: UploadFile = File(..., description="File tối đa 5 MB"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    activity = activity_service.get_activity(db, id)
+    attachment = activity_service.save_attachment(
+        db, activity, file, current_user
+    )
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=api_response(
+            status_code=status.HTTP_201_CREATED,
+            message="Upload file thành công",
+            data=ActivityAttachmentResponse.model_validate(attachment).model_dump(mode="json"),
+            path=request.url.path,
+        ),
+    )
+
+
+@router.get(
+    "/activities/{id}/attachments",
+    status_code=status.HTTP_200_OK,
+    summary="Xem file đính kèm",
+    description="Chỉ thành viên của câu lạc bộ được xem file đính kèm.",
+)
+def get_activity_attachments(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    activity = activity_service.get_activity(db, id)
+    attachments = activity_service.list_attachments(db, activity, current_user)
+    data = [
+        ActivityAttachmentResponse.model_validate(item).model_dump(mode="json")
+        for item in attachments
+    ]
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=api_response(
+            status_code=status.HTTP_200_OK,
+            message="Lấy file đính kèm thành công",
+            data=data,
+            path=request.url.path,
+        ),
+    )

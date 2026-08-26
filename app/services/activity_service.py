@@ -1,3 +1,7 @@
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import UploadFile
 from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
@@ -5,6 +9,7 @@ from app.models.user import User
 from app.models.club import ClubMember, ClubMemberRole
 from app.models.activity import ClubActivity, ActivityStatus, ActivityPriority
 from app.models.club_log import ClubLog
+from app.models.activity_extra import ActivityAttachment, ActivityComment
 from app.schemas.activity import ClubActivityCreateForm, ClubActivityUpdate
 from app.utils.exceptions import BadRequestException, NotFoundException, ForbiddenException, HTTPConflict
 from app.services.club_service import require_member, require_owner
@@ -14,6 +19,15 @@ ALLOWED_SORT_FIELDS = {
     "created_at": ClubActivity.created_at,
     "due_date": ClubActivity.due_date,
 }
+
+MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024
+ALLOWED_ATTACHMENT_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "application/pdf": ".pdf",
+}
+ATTACHMENT_DIRECTORY = Path("uploads") / "activities"
 
 
 def validate_assignee(db: Session, club_id: int, assignee_id: int) -> None:
@@ -196,6 +210,12 @@ def delete_activity(db: Session, activity: ClubActivity, actor: User) -> None:
     activity_title = activity.title
 
     try:
+        attachments = db.query(ActivityAttachment).filter(ActivityAttachment.activity_id == activity.id).all()
+        for attachment in attachments:
+            Path(attachment.file_path).unlink(missing_ok=True)
+
+        db.query(ActivityAttachment).filter(ActivityAttachment.activity_id == activity.id).delete()
+        db.query(ActivityComment).filter(ActivityComment.activity_id == activity.id).delete()
         db.delete(activity)
         db.add(ClubLog(
             club_id=club_id,
@@ -209,3 +229,109 @@ def delete_activity(db: Session, activity: ClubActivity, actor: User) -> None:
     else:
         db.commit()
 #endregion
+
+# region ================================ Thêm comment hoạt động của CLB đó ================================
+def add_comment(
+    db: Session,
+    activity: ClubActivity,
+    content: str,
+    actor: User,
+) -> ActivityComment:
+    require_member(db, activity.club_id, actor.id)
+    comment = ActivityComment(
+        activity_id=activity.id,
+        user_id=actor.id,
+        content=content.strip(),
+    )
+    if not comment.content:
+        raise BadRequestException("Nội dung comment không được để trống")
+
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+#endregion
+
+# region ================================ Xem list comment hoạt động của CLB đó ================================
+def list_comments(db: Session,activity: ClubActivity,actor: User) -> list[ActivityComment]:
+    require_member(db, activity.club_id, actor.id)
+    return (
+        db.query(ActivityComment)
+        .filter(ActivityComment.activity_id == activity.id)
+        .order_by(ActivityComment.created_at.asc(), ActivityComment.id.asc())
+        .all()
+    )
+#endregion
+
+# region ================================ Lưu file đính kèm hoạt động của CLB đó ================================
+def save_attachment(
+    db: Session,
+    activity: ClubActivity,
+    upload: UploadFile,
+    actor: User,
+) -> ActivityAttachment:
+    require_member(db, activity.club_id, actor.id)
+
+    extension = ALLOWED_ATTACHMENT_TYPES.get(upload.content_type or "")
+    if extension is None:
+        raise BadRequestException("Chỉ hỗ trợ JPG, PNG, WEBP hoặc PDF")
+
+    content = upload.file.read(MAX_ATTACHMENT_SIZE + 1)
+    if len(content) > MAX_ATTACHMENT_SIZE:
+        raise BadRequestException("File đính kèm không được vượt quá 5 MB")
+    if not content:
+        raise BadRequestException("File đính kèm không được rỗng")
+
+    stored_name = f"{uuid4().hex}{extension}"
+    ATTACHMENT_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    file_path = ATTACHMENT_DIRECTORY / stored_name
+    file_path.write_bytes(content)
+
+    attachment = ActivityAttachment(
+        activity_id=activity.id,
+        user_id=actor.id,
+        original_name=upload.filename or stored_name,
+        stored_name=stored_name,
+        content_type=upload.content_type or "application/octet-stream",
+        file_size=len(content),
+        file_path=str(file_path),
+    )
+    try:
+        db.add(attachment)
+        db.commit()
+        db.refresh(attachment)
+    except Exception:
+        db.rollback()
+        file_path.unlink(missing_ok=True)
+        raise
+    return attachment
+#endregion
+
+
+# region ================================ Xem file đính kèm hoạt động của CLB đó ================================
+def list_attachments(
+    db: Session,
+    activity: ClubActivity,
+    actor: User,
+) -> list[ActivityAttachment]:
+    require_member(db, activity.club_id, actor.id)
+    return (
+        db.query(ActivityAttachment)
+        .filter(ActivityAttachment.activity_id == activity.id)
+        .order_by(ActivityAttachment.created_at.desc(), ActivityAttachment.id.desc())
+        .all()
+    )
+#endregion
+
+
+
+
+
+
+
+
+
+
+
+
