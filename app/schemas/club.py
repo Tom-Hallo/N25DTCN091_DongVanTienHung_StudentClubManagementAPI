@@ -42,7 +42,7 @@ class ClubResponse(ClubBase):
 
 
 class ClubMemberBase(BaseModel):
-    user_id: int = Field(gt=0)
+    user_id: int = Field(ge=1)
     club_id: int
     role: ClubMemberRole = ClubMemberRole.MEMBER
 

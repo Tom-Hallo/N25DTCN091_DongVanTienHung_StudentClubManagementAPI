@@ -115,11 +115,10 @@ def view_my_clubs_by_id(
 def add_member_club(
     id: int,
     request: Request,
-    user_id: int = Form(..., description="Nhập ID user để thêm vào"),
+    user_id: int = Form(..., ge=1, description="Nhập ID user để thêm vào"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-
     data = ClubMemberCreate(user_id=user_id, club_id=id)
     
     club_service.get_club(db, id)

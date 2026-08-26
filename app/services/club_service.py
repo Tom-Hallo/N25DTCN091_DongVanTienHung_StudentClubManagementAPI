@@ -86,6 +86,7 @@ def require_owner(db: Session, club_id: int, user_id: int) -> ClubMember:
     return membership
 
 def add_member(db: Session, club_id: int, target_user_id: int, actor_id: int) -> ClubMember:
+
     target_user = db.query(User).filter(User.id == target_user_id).first()
     if target_user is None:
         raise NotFoundException("Người dùng không tồn tại")

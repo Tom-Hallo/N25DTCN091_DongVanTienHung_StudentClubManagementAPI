@@ -44,8 +44,8 @@ def auth_login(
     """
     Giới hạn số lần đăng nhập
     """
-    # client_ip = request.client.host if request.client else "unknown"
-    # check_rate_limit(f"{client_ip}:{email}")
+    client_ip = request.client.host if request.client else "unknown"
+    check_rate_limit(f"{client_ip}:{email}")
 
     user_authentiacted = auth_service.authenticate_user(db=db, email= email, password= password)
 
