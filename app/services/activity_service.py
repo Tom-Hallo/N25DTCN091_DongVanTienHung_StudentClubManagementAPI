@@ -137,6 +137,12 @@ def update_activity(db: Session, activity: ClubActivity, data: ClubActivityUpdat
     # exclude_unset để không ghi đè trường không được gửi lên
     update_data = data.model_dump(exclude_unset=True)
 
+    assignee_id = update_data.get("assignee_id")
+
+    # Form rỗng được hiểu là không cập nhật, giữ nguyên người phụ trách cũ.
+    if assignee_id is None:
+        update_data.pop("assignee_id")
+
     if "assignee_id" in update_data and not is_owner:
         raise ForbiddenException("Chỉ Owner mới có thể gán lại người phụ trách")
 

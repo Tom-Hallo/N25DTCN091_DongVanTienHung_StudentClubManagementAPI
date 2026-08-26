@@ -8,7 +8,9 @@ from app.utils.rate_limiter import check_rate_limit
 
 router = APIRouter(prefix="/auth" , tags=["Auth"])
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED,
+            summary="Đăng kí tài khoản",
+            description="Tạo một tài khoản để sử dụng các chức năng.")
 def auth_register(
     user_data: UserCreate = Form(...),
     db: Session = Depends(get_db)
@@ -17,7 +19,9 @@ def auth_register(
     return new_user
 
 
-@router.post("/login")
+@router.post("/login",
+            summary="Đăng nhập tài khoản",
+            description="Đằng nhập để lấy access token và refresh token")
 def auth_login(
     request: Request,
     email: str = Form(..., description="Nhập Email người dùng"),
@@ -36,7 +40,9 @@ def auth_login(
     return auth_service.issue_tokens(user_authentiacted)
 
 
-@router.post("/refresh")
+@router.post("/refresh",\
+            summary="Refresh token",
+            description="Nhập refresh token để tạo lại cái mới.")
 def auth_refresh( refresh_token: str = Form(..., description="Nhập refresh token"), db: Session = Depends(get_db),
 ):
     return auth_service.refresh_access_token(db, refresh_token)

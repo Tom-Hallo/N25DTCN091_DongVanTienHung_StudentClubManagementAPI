@@ -43,8 +43,7 @@ def create_activity(
 
 # region================================ Xem các hoạt đông của CLB đó ================================
 @router.get(
-    "/clubs/{id}/activities",
-    status_code=status.HTTP_200_OK,
+    "/clubs/{id}/activities", status_code=status.HTTP_200_OK,
     summary="Danh sách hoạt động câu lạc bộ",
     description="Lọc, tìm kiếm, sắp xếp và phân trang hoạt động của câu lạc bộ.",
 )
@@ -101,9 +100,9 @@ def get_activity_detail(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    activity = activity_service.get_activity_detail(
-        db, activity_id=id, actor=current_user
-    )
+    
+    activity = activity_service.get_activity_detail(db, activity_id=id, actor=current_user)
+
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=api_response(
@@ -116,8 +115,7 @@ def get_activity_detail(
 #endregion
 
 # region================================ Cập nhật tt hoạt đông của CLB đó ================================
-@router.patch(
-    "/activities/{id}",
+@router.patch("/activities/{id}",
     summary="Cập nhật hoạt động",
     description="Owner hoặc assignee cập nhật các trường được gửi lên.",
 )
@@ -129,17 +127,14 @@ def update_activity(
     current_user: User = Depends(get_current_user),
 ):
     activity = activity_service.get_activity(db, id)
-    updated_activity = activity_service.update_activity(
-        db, activity=activity, data=data, actor=current_user
-    )
+    updated_activity = activity_service.update_activity(db, activity=activity, data=data, actor=current_user)
+    
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=api_response(
             status_code=status.HTTP_200_OK,
             message="Cập nhật hoạt động thành công",
-            data=ClubActivityResponse.model_validate(
-                updated_activity
-            ).model_dump(mode="json"),
+            data=ClubActivityResponse.model_validate(updated_activity).model_dump(mode="json"),
             path=request.url.path,
         ),
     )
