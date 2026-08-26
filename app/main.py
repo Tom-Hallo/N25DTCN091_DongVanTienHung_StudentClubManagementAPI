@@ -28,10 +28,23 @@ def app_exception_handler(request: Request, exc: AppException):
 
 @app.exception_handler(RequestValidationError)
 def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+
+    details = [
+        {
+            "field": ".".join(str(part) for part in err.get("loc", []) if part != "body"),
+            "message": err.get("msg"),
+            "type": err.get("type"),
+        }
+        for err in errors
+    ]
+
+    first_message = errors[0]["msg"] if errors else "Lỗi xác thực dữ liệu"
+
     return JSONResponse(
         status_code=422,
         content=error_response(
-            422, "Lỗi xác thực dữ liệu", exc.errors()[0]["msg"], request.url.path
+            422, "Lỗi xác thực dữ liệu", first_message, request.url.path, details=details
         ),
     )
 
@@ -54,6 +67,14 @@ def generic_exception_handler(request: Request, exc: Exception):
             500, "Internal server error", "Đã xảy ra lỗi máy chủ", request.url.path
         ),
     )
+
+@app.get("/")
+def get_root():
+    return {
+        "message": "Student Club Management API",
+        "docs": "/docs",
+        "health_check": "/health-checking",
+    }
 
 @app.get("/health-checking")
 def get_health():

@@ -23,10 +23,12 @@ def error_response(
     error: str,
     message: str,
     path: str | None = None,
+    details: list | dict | None = None,
 ) -> dict | None:
     return api_response(
         status_code=status_code,
         error=error,
         message=message,
+        data={"details": details} if details is not None else None,
         path=path,
     )

@@ -6,7 +6,7 @@ from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
 from app.models.user import User
-from app.models.club import ClubMember, ClubMemberRole
+from app.models.club import Club, ClubMember, ClubMemberRole
 from app.models.activity import ClubActivity, ActivityStatus, ActivityPriority
 from app.models.club_log import ClubLog
 from app.models.activity_extra import ActivityAttachment, ActivityComment
@@ -141,6 +141,14 @@ def get_activity(db: Session, activity_id: int) -> ClubActivity:
     activity = db.query(ClubActivity).filter(ClubActivity.id == activity_id).first()
     if activity is None:
         raise NotFoundException("Hoạt động không tồn tại")
+
+    #
+    #
+    #
+    club = db.query(Club).filter(Club.id == activity.club_id).first()
+    if club is None or club.is_deleted or club.deleted_at is not None:
+        raise NotFoundException("Hoạt động không tồn tại")
+    
     return activity
 
 
@@ -164,14 +172,23 @@ def update_activity(db: Session, activity: ClubActivity, data: ClubActivityUpdat
     # exclude_unset để không ghi đè trường không được gửi lên
     update_data = data.model_dump(exclude_unset=True)
 
-    assignee_id = update_data.get("assignee_id")
-
-    # Form rỗng được hiểu là không cập nhật, giữ nguyên người phụ trách cũ.
-    if assignee_id is None:
-        update_data.pop("assignee_id")
+    #
+    #
+    #
+    if update_data.get("assignee_id") is None:
+        update_data.pop("assignee_id", None)
 
     if "assignee_id" in update_data and not is_owner:
         raise ForbiddenException("Chỉ Owner mới có thể gán lại người phụ trách")
+
+    #
+    #
+    # if is_assignee and not is_owner:
+    #     not_allowed_fields = set(update_data.keys()) - {"status"}
+    #     if not_allowed_fields:
+    #         raise ForbiddenException(
+    #             "Người được gán chỉ được phép cập nhật trạng thái (status) của hoạt động"
+    #         )
 
     if update_data.get("assignee_id") is not None:
         validate_assignee(db, activity.club_id, update_data["assignee_id"])

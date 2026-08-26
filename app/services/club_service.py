@@ -94,7 +94,7 @@ def add_member(db: Session, club_id: int, target_user_id: int, actor_id: int) ->
 
 
     if existing is not None:
-        raise BadRequestException("Người dùng đã có trong Clb")
+        raise HTTPConflict("Người dùng đã có trong Clb")
 
     member = ClubMember(club_id=club_id, user_id=target_user_id, role=ClubMemberRole.MEMBER)
 

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.models.user import User
+from app.models.user import User, RoleClassify
 from app.schemas.user import UserCreate
 from app.utils.exceptions import BadRequestException, UnauthorizedException, ForbiddenException ,HTTPConflict
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_access_token
@@ -16,7 +16,7 @@ def create_user(db: Session, user_data: UserCreate):
         email=user_data.email,
         password_hash=hashed_pwd,
         full_name=user_data.full_name,
-        role=user_data.role
+        role=RoleClassify.USER
     )
 
     db.add(new_user)
