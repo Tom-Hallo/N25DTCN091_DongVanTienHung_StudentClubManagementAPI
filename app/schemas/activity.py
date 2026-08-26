@@ -50,6 +50,18 @@ class ClubActivityUpdate(BaseModel):
             return None
         return value
 
+    #Check thời gian due_date có phải là tương lai không
+    @field_validator("due_date")
+    @classmethod
+    def due_date_must_be_future(cls, value):
+        if value is None:
+            return value
+        now = datetime.now(timezone.utc)
+        compare_value = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+        if compare_value < now:
+            raise ValueError("due_date không được nằm trong quá khứ")
+        return value
+
 
 class ClubActivityResponse(ClubActivityBase):
     model_config = ConfigDict(from_attributes=True)
